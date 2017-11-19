@@ -1,0 +1,13 @@
+LICENSE
+MANIFEST.in
+README.rst
+tesseract.pxd
+tesserocr.pyx
+tesserocr_experiment.pyx
+tesserocr.egg-info/PKG-INFO
+tesserocr.egg-info/SOURCES.txt
+tesserocr.egg-info/dependency_links.txt
+tesserocr.egg-info/top_level.txt
+tests/__init__.py
+tests/eurotext.tif
+tests/test_api.py

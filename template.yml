@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Recognize the characters in the image uploaded to S3 bucket using OCR.
+Outputs:
+  ImageBucket:
+    Description: S3 Bucket where the images needs to be uploaded.
+    Value:
+      Ref: ImageBucket
+  OutputTextTable:
+    Description: DynamoDB table where the text will be stored.
+    Value:
+      Ref: TextTable
+Resources:
+  ProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.6
+      CodeUri: ./lambda-ocr
+      MemorySize: 1536
+      Timeout: 300
+      Environment:
+        Variables:
+          TESSDATA_PREFIX: ''
+          DYNAMODB_TABLE:
+            Fn::Sub: "lambda-ocr-${AWS::StackName}"
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectVersion
+                - s3:GetObjectACL
+              Resource:
+                Fn::Sub: arn:aws:s3:::${AWS::StackName}-${AWS::Region}-${AWS::AccountId}/*
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource:
+                Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/lambda-ocr-${AWS::StackName}
+      Events:
+        PhotoUpload:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: ImageBucket
+            Events: "s3:ObjectCreated:*"
+            Filter:
+              S3Key:
+                Rules:
+                  -
+                    Name: suffix
+                    Value: 'jpg'
+
+  ImageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: "${AWS::StackName}-${AWS::Region}-${AWS::AccountId}"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          -
+            Function:
+              Fn::Sub: ${ProcessorFunction.Arn}
+            Event: "s3:ObjectCreated:*"
+            Filter:
+              S3Key:
+                Rules:
+                  -
+                    Name: suffix
+                    Value: 'jpeg'
+          -
+            Function:
+              Fn::Sub: ${ProcessorFunction.Arn}
+            Event: "s3:ObjectCreated:*"
+            Filter:
+              S3Key:
+                Rules:
+                  -
+                    Name: suffix
+                    Value: 'png'
+          -
+            Function:
+              Fn::Sub: ${ProcessorFunction.Arn}
+            Event: "s3:ObjectCreated:*"
+            Filter:
+              S3Key:
+                Rules:
+                  -
+                    Name: suffix
+                    Value: 'tiff'
+
+  TextTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName:
+        Fn::Sub: "lambda-ocr-${AWS::StackName}"
+      AttributeDefinitions:
+        -
+          AttributeName: "ObjectPath"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "ObjectPath"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      Tags:
+        - Key: Reason
+          Value: LambdaOCR
+

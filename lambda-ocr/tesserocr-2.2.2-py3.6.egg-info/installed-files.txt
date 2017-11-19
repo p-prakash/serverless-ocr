@@ -1,0 +1,5 @@
+../tesserocr.cpython-36m-x86_64-linux-gnu.so
+PKG-INFO
+top_level.txt
+dependency_links.txt
+SOURCES.txt
