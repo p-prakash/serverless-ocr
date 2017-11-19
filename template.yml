@@ -58,6 +58,7 @@ Resources:
 
   ImageBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
     Properties:
       BucketName:
         Fn::Sub: "${AWS::StackName}-${AWS::Region}-${AWS::AccountId}"
