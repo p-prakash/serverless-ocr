@@ -25,7 +25,6 @@ Resources:
           DYNAMODB_TABLE:
             Fn::Sub: "lambda-ocr-${AWS::StackName}"
       Policies:
-        - AWSLambdaBasicExecutionRole
         - S3ReadPolicy:
             BucketName:
               Fn::Sub: ${AWS::StackName}-${AWS::Region}-${AWS::AccountId}
