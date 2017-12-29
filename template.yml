@@ -1,15 +1,28 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Recognize the characters in the image uploaded to S3 bucket using OCR.
+Parameters:
+  ImageBucketName:
+    Type: String
+    Description: "Name of the Bucket to store the images. Note: It should be lowecase letters, numbers or hypen and between 3 and 63 characters."
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+  TextTableName:
+    Description: "Name of the DynamoDB table to store the recognized text. Note: It should be alphanumeric, underscore or hypen and between 3 and 63 characters."
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: ^[a-zA-Z0-9][a-zA-Z0-9-_]*[a-zA-Z0-9]$
+    Type: String
 Outputs:
   ImageBucket:
     Description: S3 Bucket where the images needs to be uploaded.
     Value:
-      Ref: ImageBucket
+      Ref: ImageBucketName
   OutputTextTable:
     Description: DynamoDB table where the text will be stored.
     Value:
-      Ref: TextTable
+      Ref: TextTableName
 Resources:
   ProcessorFunction:
     Type: AWS::Serverless::Function
@@ -23,14 +36,14 @@ Resources:
         Variables:
           TESSDATA_PREFIX: ''
           DYNAMODB_TABLE:
-            Fn::Sub: "lambda-ocr-${AWS::StackName}"
+            Ref: TextTableName
       Policies:
         - S3ReadPolicy:
             BucketName:
-              !Join ['-',[!Ref 'AWS::StackName', !Ref 'AWS::Region', !Ref 'AWS::AccountId']]
+              Ref: ImageBucketName
         - DynamoDBCrudPolicy:
             TableName:
-              !Join ['-',['lambda-ocr', !Ref 'AWS::StackName']]
+              Ref: TextTableName
       Events:
         PhotoUpload:
           Type: S3
@@ -50,7 +63,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       BucketName:
-        Fn::Sub: "${AWS::StackName}-${AWS::Region}-${AWS::AccountId}"
+        Ref: ImageBucketName
       NotificationConfiguration:
         LambdaConfigurations:
           -
@@ -88,7 +101,7 @@ Resources:
     Type: "AWS::DynamoDB::Table"
     Properties:
       TableName:
-        Fn::Sub: "lambda-ocr-${AWS::StackName}"
+        Ref: TextTableName
       AttributeDefinitions:
         -
           AttributeName: "ObjectPath"
